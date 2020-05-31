@@ -1,0 +1,68 @@
+import pandas as pd
+from pandas import read_csv
+from matplotlib import pyplot
+
+series = pd.read_csv("C:/Users/Vusal/Desktop/AirPassengers.csv", header=0, index_col=0, squeeze=True,error_bad_lines=False)
+print(series.head())
+series.plot()
+pyplot.show()
+
+from pandas.tools.plotting import autocorrelation_plot
+autocorrelation_plot(series)
+pyplot.show()
+
+#An ARIMA model can be created using the statsmodels library as follows:
+
+#1.Define the model by calling ARIMA() and passing in the p, d, and q parameters.
+
+#2.The model is prepared on the training data by calling the fit() function.
+
+#3.Predictions can be made by calling the predict() function and specifying the index of the time or times to be predicted.
+
+from pandas import DataFrame
+from statsmodels.tsa.arima_model import ARIMA
+
+# First, we fit an ARIMA(4,1,0) model. 
+# This sets the lag value to 4 for autoregression
+# uses a difference order of 1 to make the time series stationary
+# uses a moving average model of 0.
+# fit model
+
+model = ARIMA(series.astype(float), order=(4,1,0))
+model_fit = model.fit(disp=0)
+print(model_fit.summary())
+
+# plot residual errors
+residuals = DataFrame(model_fit.resid)
+residuals.plot()
+pyplot.show()
+residuals.plot(kind='kde')
+pyplot.show()
+print(residuals.describe())
+
+# summary of the fit model.
+
+import numpy as np
+from sklearn.metrics import mean_squared_error
+
+X = series.values
+size = int(len(X) * 0.75)
+train, test = X[0:size], X[size:len(X)] # Splitting the training dataset into train and test sets, use the train set to fit the model, and generate a prediction for each element on the test set.
+history = [x for x in train] # Manually keeping track of all observations in a list called history that is seeded with the training data and to which new observations are appended in each iteration.
+data = np.array(history).astype('float32')
+predictions = list()
+for t in range(len(test)):
+    model = ARIMA(data, order=(5,1,0))
+    model_fit = model.fit(disp=0)
+    output = model_fit.forecast() #using the forecast() function, which performs a one-step forecast using the model.
+    yhat = output[0]
+    predictions.append(yhat)
+    obs = test[t]
+    history.append(obs)
+    print('predicted=%f, expected=%f' % (yhat, obs))
+error = mean_squared_error(test, predictions) # calculating MSE  provides a point of comparison for other ARIMA configurations.
+print('Test MSE: %.3f' % error)
+# plot
+pyplot.plot(test)
+pyplot.plot(predictions, color='red')
+pyplot.show()
